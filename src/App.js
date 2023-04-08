@@ -1,29 +1,3 @@
-// import logo from './logo.svg';
-// import './App.css';
-
-// function App() {
-//   return (
-//     <div className="App">
-//       <header className="App-header">
-//         <img src={logo} className="App-logo" alt="logo" />
-//         <p>
-//           Edit <code>src/App.js</code> and save to reload.
-//         </p>
-//         <a
-//           className="App-link"
-//           href="https://reactjs.org"
-//           target="_blank"
-//           rel="noopener noreferrer"
-//         >
-//           Learn React
-//         </a>
-//       </header>
-//     </div>
-//   );
-// }
-
-// export default App;
-
 import React, { useState } from "react";
 import { format, parseISO, differenceInDays } from "date-fns";
 import "./App.css";
@@ -158,7 +132,7 @@ const Timeline = ({ events }) => {
   let startDate = "";
   let endDate = "";
   let totalDays = 0;
-  // let rows = [[]];
+  let maxZoomPercent = 0;
 
   const calculateEventWidth = (start, end) => {
     const eventDuration = differenceInDays(parseISO(end), parseISO(start));
@@ -170,58 +144,49 @@ const Timeline = ({ events }) => {
     return (daysFromStart / totalDays) * 100;
   };
 
-  // const getEventTimes = events => {
-  //   let eventTimes = [];
-  //   events.forEach(event => {
-  //     eventTimes.push(
-  //       {
-  //         name: event.name,
-  //         timestamp: event.start,
-  //         type: "start"
-  //       },
-  //       {
-  //         name: event.name,
-  //         timestamp: event.end,
-  //         type: "end"
-  //       }
-  //     );
-  //   });
-  //   eventTimes.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
-  //   return eventTimes;
-  // };
-
   const addEventToRows = (rows, event) => {
     for (const row of rows) {
       const lastEvent = row[row.length - 1];
-      // console.log(row)
       if (event.start > lastEvent.end) {
         row.push(event);
-        return
+        return;
       }
     }
-    rows.push([event])
-  }
+    rows.push([event]);
+  };
 
   const latestDate = (lastDate, date) => {
     return (Date.parse(date) > Date.parse(lastDate)) ? date : lastDate;
+  };
+
+  const shortestDaySpan = (shortestSpan, days) => {
+    return (days < shortestSpan) ? days : shortestSpan;
   }
+
+  const calculateEventDays = event => {
+    return differenceInDays(parseISO(event.end), parseISO(event.start));
+  };
 
   const createRows = events => {
     events.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
-    // let eventTimes = getEventTimes(events);
-    startDate = parseISO(events[0].start);
+
     let lastDate = events[0].end;
+    let shortestEventDays = calculateEventDays(events[0]);
+
     let rows = [];
     events.forEach(event => {
       addEventToRows(rows, event);
       lastDate = latestDate(lastDate, event.end);
+      shortestEventDays = shortestDaySpan(shortestEventDays, calculateEventDays(event));
     });
+    startDate = parseISO(events[0].start);
     endDate = parseISO(lastDate);
     console.log(rows);
     totalDays = differenceInDays(endDate, startDate);
-    console.log(startDate, endDate, totalDays);
+    maxZoomPercent = (totalDays / shortestEventDays) * 100;
+    console.log(startDate, endDate, totalDays, maxZoomPercent);
     return rows;
-  }
+  };
 
   const rows = createRows(events);
 
