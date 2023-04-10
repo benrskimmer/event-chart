@@ -63,10 +63,12 @@
 .container {
   /* border: 4px solid red; */
   position: relative;
+  user-select: none;
 }
 
 .timeline {
   position: relative;
+  /* background-color: #5050502c; */
   /* border: 2px solid green; */
   height: 48px;
   padding-top: 6px;
@@ -80,7 +82,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   height: 48px;
 }
 

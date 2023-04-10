@@ -3,8 +3,9 @@ import Row from "./Row";
 import React, { useState, useRef } from "react";
 import { parseISO, differenceInDays } from "date-fns";
 
-export default function Container ({ events }) {
-  const scrollSensitivity = 0.8;
+export default function Container ({ events, swimlanes }) {
+  const scrollZoomSensitivity = 0.8;
+  const scrollPanSensitivity = 0.5;  // pan on scroll if alt key is held
   const timeline = {
     startDate: "",
     endDate: "",
@@ -12,6 +13,7 @@ export default function Container ({ events }) {
   };
   let zoomScaleLimit = 1;  // defaults to 1, calculated when creating rows
   const [containerPosition, setContainerPosition] = useState({width: null, leftOffset: 0});
+  const [panStart, setPanStart] = useState(0);
 
   const addEventToRows = (rows, event) => {
     for (const row of rows) {
@@ -62,44 +64,74 @@ export default function Container ({ events }) {
     return Math.round(Math.min(Math.max(zoom, minimumWidth), maximumWidth));
   };
 
-  const unviewableWidth = newWidth => (newWidth - viewableContainerRef.current.clientWidth)
+  const unviewableWidth = width => (width - viewableContainerRef.current.clientWidth)
 
-  const boundedLeftOffset = (offset, newWidth) => {
-    const maxLeftOffset = (0 - unviewableWidth(newWidth));  // negative value to shift container left
+  const boundedLeftOffset = (offset, width = containerRef.current.clientWidth) => {
+    const maxLeftOffset = (0 - unviewableWidth(width));  // negative value to shift container left
     const maxRightOffset = 0;
     return Math.min(Math.max(offset, maxLeftOffset), maxRightOffset);
   };
 
   const containerLeftOffset = () => (viewableContainerRef.current.offsetLeft - containerRef.current.offsetLeft);
 
-  const eventViewableOffset = event => (event.clientX - viewableContainerRef.current.offsetLeft);
+  const cursorViewableOffset = event => (event.clientX - viewableContainerRef.current.offsetLeft);
 
   const eventContainerPivotRatio = event => {
-    const containerPivotOffset = eventViewableOffset(event) + containerLeftOffset();
-    return containerPivotOffset / (containerRef.current.clientWidth - 1);
+    const containerPivotOffset = cursorViewableOffset(event) + containerLeftOffset();
+    return containerPivotOffset / (containerRef.current.clientWidth - 1);  // offset is 0 indexed so -1
   };
 
-  function handleScroll(event) {
-    const { deltaY: deltaScrollY } = event;
+  const scrollPan = event => {
+    setContainerPosition( oldPosition => {
+      const newPosition = {...oldPosition};
+      const panIncrement = 0.001 * viewableContainerRef.current.clientWidth;
+      const panDistance = (event.deltaY * scrollPanSensitivity * panIncrement);
+      newPosition.leftOffset = boundedLeftOffset(oldPosition.leftOffset + panDistance);
+      return newPosition;
+    });
+  };
 
-    setContainerPosition(oldPosition => {
+  const scrollZoom = event => {
+    setContainerPosition( oldPosition => {
+      const newPosition = {};
       const previousWidth = oldPosition.width ? oldPosition.width : containerRef.current.clientWidth;
       const zoomIncrement = 0.001 * previousWidth;
-      const newPosition = {};
 
-      newPosition.width = boundedZoom(previousWidth - (deltaScrollY * scrollSensitivity * zoomIncrement));
+      newPosition.width = boundedZoom(previousWidth - (event.deltaY * scrollZoomSensitivity * zoomIncrement));
       const widthIncrease = newPosition.width - previousWidth;
       const additionalLeftShiftAmount = 0 - eventContainerPivotRatio(event) * widthIncrease;
       newPosition.leftOffset = boundedLeftOffset(
         oldPosition.leftOffset + additionalLeftShiftAmount, newPosition.width
       );
-      console.log('width increase: ', widthIncrease);
-      console.log('container pivot ratio: ', eventContainerPivotRatio(event));
-      console.log('old container position: ', oldPosition);
-      console.log('new container position: ', newPosition);
-      console.log('\n')
+      // console.log('width increase: ', widthIncrease);
+      // console.log('container pivot ratio: ', eventContainerPivotRatio(event));
+      // console.log('old container position: ', oldPosition);
+      // console.log('new container position: ', newPosition);
+      // console.log('\n')
       return newPosition;
     });
+  };
+
+  function handleScroll(event) {
+    if(event.altKey === true) {
+      scrollPan(event);
+      return;
+    }
+    scrollZoom(event);
+  }
+
+  const handleMouseDown = event => setPanStart(event.clientX);
+  
+  function handleMouseMove(event) {
+    if(event.buttons !== 1)
+      return;
+    const panDistance = event.clientX - panStart;
+    setContainerPosition( oldPosition => {
+      const newPosition = {...oldPosition};
+      newPosition.leftOffset = boundedLeftOffset(oldPosition.leftOffset + panDistance);
+      return newPosition;
+    });
+    setPanStart(event.clientX);
   }
 
   const timelineRows = getTimelineRows(events);
@@ -115,7 +147,8 @@ export default function Container ({ events }) {
         ref={containerRef}
         className="container"
         onWheel={handleScroll}
-        // onClick={}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
         style={{
           width: `${containerPosition.width}px`,
           left: `${containerPosition.leftOffset}px`
@@ -126,6 +159,7 @@ export default function Container ({ events }) {
             key={index}
             events={events}
             timeline={timeline}
+            swimlaneOn={(index % 2 && swimlanes)}
           />
         ))}
         <div className="tick-marks"></div>
