@@ -17,15 +17,16 @@ export default function Event ({event, timeline}) {
       className="event"
       style={{
         width: `${calculateEventWidth(event.start, event.end)}%`,
-        left: `${calculateEventPosition(event.start)}%`
+        left: `${calculateEventPosition(event.start)}%`,
       }}
+      title={`${event.name}\n${event.start} - ${event.end}`}
     >
       <div className="event-container">
-        <div className="event-name">{event.name}</div>
-        <div className="event-dates">
+        <h1 className="event-name">{event.name}</h1>
+        <p className="event-dates">
           {format(parseISO(event.start), "MMM d, yyyy")} -{" "}
           {format(parseISO(event.end), "MMM d, yyyy")}
-        </div>
+        </p>
       </div>
     </div>
   );

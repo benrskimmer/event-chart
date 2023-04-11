@@ -1,12 +1,12 @@
 import "./App.css";
-import Container from "./Container";
+import Chart from "./Chart";
 
 export default function Timeline ({ events, swimlanes=true }) {
   
   
   return (
     <div className="chart">
-      <Container
+      <Chart
         events={events}
         swimlanes={swimlanes}
       />
