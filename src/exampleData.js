@@ -51,7 +51,7 @@ const sampleEvents = [
     id: 9,
     name: "Earth Day Celebration",
     start: "2023-07-01",
-    end: "2023-09-30"
+    end: "2023-10-30"
   },
   {
     id: 10,
@@ -92,7 +92,7 @@ const sampleEvents = [
   {
     id: 16,
     name: "Beach Vacation",
-    start: "2023-10-01",
+    start: "2023-10-05",
     end: "2024-02-29"
   },
   {

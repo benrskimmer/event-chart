@@ -1,17 +1,20 @@
-import "./App.css";
+import styled from "styled-components";
 
-export default function TickLine ({height}) {
+const Bar = styled.div`
+  position: absolute;
+  z-index: 2;
+  top: -${props => props.height}px;
+  height: ${props => (props.tickHeight + props.height)}px;
+  border-left: 2px solid ${props => props.theme.tickColor || 'black'};
+`
+
+export default function TickLine ({height, theme}) {
   const tickHeight = 20;
-
-  // const TickLine =
-
   return(
-    <div className="bars"
-      style={{
-        top: `-${height}px`,
-        height: `${tickHeight + height}px`
-      }}
-    >
-    </div>
+    <Bar
+      tickHeight={tickHeight}
+      height={height}
+      theme={theme}
+    />
   );
 }

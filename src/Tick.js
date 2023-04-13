@@ -1,52 +1,53 @@
-import React, { useRef, useEffect, useState } from "react";
 import { format } from "date-fns";
-import "./App.css";
 import TickLine from "./TickLine"
+import styled from "styled-components";
 
-export default function Tick ({dayOffset, chartInfo, timeline, bars=true}) {
-  
-  // const [barHeight, setBarHeight] = useState(0);
-  // const tickRef = useRef(null);
-  // // console.log("tick mark bar was re-rendered")
+const TickContainer = styled.div`
+  position: absolute;
+  z-index: 2;
+`
 
-  const getOffsetDate = (date, days) => {
-    var result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-  };
+const TickDate = styled.p`
+  position: relative;
+  font-size: 0.9rem;
+  margin: 0;
+  padding-top: 25px;
+  left: -50%;
+  white-space: nowrap;
+  color: ${props => props.theme.tickTextColor}
+`
 
+const getOffsetDate = (date, days) => {
+  var result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
+};
+
+const getContainerOffset = (dayOffset, chartInfo, timeline) => {
+  const locationRatio = dayOffset / timeline.totalDays;
+  return locationRatio * chartInfo.containerWidth;
+};
+
+export default function Tick ({dayOffset, chartInfo, timeline, theme}) {
   const timelineStart = new Date(timeline.startDate);
   const tickDate = getOffsetDate(timelineStart, dayOffset);
-  // console.log(tickDate)
+  const barHeight = (theme.showBars ? chartInfo.chartHeight : 0);
 
-  const getContainerOffset = () => {
-    const locationRatio = dayOffset / timeline.totalDays;
-    return locationRatio * chartInfo.containerWidth;
-  };
-
-  // useEffect(() => {
-  //   if (tickRef.current){
-  //     // console.log(tickRef)
-  //     const chartRef = tickRef.current.parentNode.parentNode;
-  //     const tickmarkBarRef = tickRef.current.parentNode;
-  //     setBarHeight(chartRef.clientHeight - tickmarkBarRef.clientHeight);
-  //   }
-  // }, [tickRef]);
-
-
-  const barHeight = (bars ? chartInfo.chartHeight : 0);
-  
   return(
-    <div
-      className="tick"
+    <TickContainer
       style={{
-        left: `${getContainerOffset()}px`
+        left: `${getContainerOffset(dayOffset, chartInfo, timeline)}px`
       }}
     >
-      <TickLine height={barHeight}/>
-      <p className="tick-dates">
+      <TickLine
+        height={barHeight}
+        theme={theme}
+      />
+      <TickDate
+        theme={theme}
+      >
         {format(tickDate, "MMM d, yyyy")}
-      </p>
-    </div>
+      </TickDate>
+    </TickContainer>
   );
 }

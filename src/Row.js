@@ -1,21 +1,29 @@
-import "./App.css";
 import Event from "./Event";
+import styled from 'styled-components';
 
-export default function Row ({events, timeline, swimlaneOn}) {
+const Timeline = styled.div`
+  position: relative;
+  height: ${props => props.theme.showEventBorder ? '50px' : '48px'};
+  padding-top: 6px;
+  padding-bottom: 6px;
+  background-color: ${props => (props.swimlaneOn && props.theme.showSwimlanes ? props.theme.swimlaneColor : '')}
+`
+
+export default function Row ({events, updateEvent, timeline, swimlaneOn, theme}) {
   return(
-    <div
-      className="timeline"
-      style={{
-        backgroundColor: swimlaneOn ? '#5050502c' : ''
-      }}
+    <Timeline
+      swimlaneOn={swimlaneOn}
+      theme={theme}
     >
-      {events.map((event, index) => (
+      {events.map((event) => (
         <Event
-          key={index}
+          key={event.id}
           event={event}
+          updateEvent={updateEvent}
           timeline={timeline}
+          theme={theme}
         />
       ))}
-    </div>
+    </Timeline>
   );
 }
