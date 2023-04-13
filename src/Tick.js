@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import TickLine from "./TickLine"
 import styled from "styled-components";
+import { useLayoutEffect, useRef } from "react";
 
 const TickContainer = styled.div`
   position: absolute;
@@ -28,13 +29,19 @@ const getContainerOffset = (dayOffset, chartInfo, timeline) => {
   return locationRatio * chartInfo.containerWidth;
 };
 
-export default function Tick ({dayOffset, chartInfo, timeline, theme}) {
+export default function Tick ({dayOffset, chartInfo, timeline, theme, updateTickMaxWidth}) {
   const timelineStart = new Date(timeline.startDate);
   const tickDate = getOffsetDate(timelineStart, dayOffset);
   const barHeight = (theme.showBars ? chartInfo.chartHeight : 0);
+  const tickRef = useRef(null);
+
+  useLayoutEffect( () => {
+    updateTickMaxWidth(tickRef.current.clientWidth);
+  }, [chartInfo.chartWidth, updateTickMaxWidth]);
 
   return(
     <TickContainer
+      ref={tickRef}
       style={{
         left: `${getContainerOffset(dayOffset, chartInfo, timeline)}px`
       }}

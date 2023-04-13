@@ -1,3 +1,4 @@
+import { useState } from "react";
 import Tick from "./Tick"
 import styled from "styled-components";
 
@@ -32,11 +33,19 @@ const getViewableTicks = (allTickDayOffsets, chartInfo, timeline, marginDays) =>
     offset => offset > (chartBeginDayOffset - marginDays)
     && offset < (chartEndDayOffset + marginDays)
     );
-}
+};
 
-const getTickDayOffsets = (timeline, chartInfo, targetTickCount, tickOverlapMargin) => {
-  const totalTickCount = Math.round(targetTickCount * chartInfo.zoomRatio);
-  const timeBuckets = totalTickCount + 1;
+const getBoundedTotalTickCount = (viewableTickCount, tickMaxWidth, tickPadding, chartInfo) => {
+  const tickPaddedSizeRatio = (100 + tickPadding) / 100;
+  const paddedTickWidth = tickMaxWidth * tickPaddedSizeRatio;
+  const totalTickDayIntervals = chartInfo.containerWidth / paddedTickWidth;
+  const totalTickCountLimit = Math.floor(totalTickDayIntervals) - 1;
+  const totalTickCount = Math.round(viewableTickCount * chartInfo.zoomRatio);
+  return Math.min(totalTickCount, totalTickCountLimit);
+};
+
+const getTickDayOffsets = (timeline, chartInfo, tickCount, tickOverlapMargin) => {
+  const timeBuckets = tickCount + 1;
   const intervalDays = (timeline.totalDays) / timeBuckets;
 
   const tickDayOffsets = [];
@@ -47,8 +56,20 @@ const getTickDayOffsets = (timeline, chartInfo, targetTickCount, tickOverlapMarg
 };
 
 export default function TickmarksBar ({timeline, chartInfo, theme}) {
-  const defaultTickCount = 10;
-  const tickDates = getTickDayOffsets(timeline, chartInfo, theme.tickCount || defaultTickCount);
+  const defaultMaxTickCount = 10;
+  const maxViewableTickCount = theme.maxTicks || defaultMaxTickCount;
+  const defaultPadding = 15;  // percent
+  const tickPadding = theme.tickPaddingPercent || defaultPadding;
+  const [tickMaxWidth, setTickMaxWidth] = useState(1);  // pixels
+
+  const updateTickMaxWidth = width => {
+    if(width > tickMaxWidth) {
+      setTickMaxWidth(width);
+    }
+  };
+
+  const boundedTotoalTickCount = getBoundedTotalTickCount(maxViewableTickCount, tickMaxWidth, tickPadding, chartInfo);
+  const tickDates = getTickDayOffsets(timeline, chartInfo, boundedTotoalTickCount);
   return(
     <TickBar>
       <ChartBottomLine
@@ -61,6 +82,7 @@ export default function TickmarksBar ({timeline, chartInfo, theme}) {
           timeline={timeline}
           chartInfo={chartInfo}
           theme={theme}
+          updateTickMaxWidth={updateTickMaxWidth}
         />
       ))}
     </TickBar>

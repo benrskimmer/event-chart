@@ -64,17 +64,23 @@ const calculateEventWidth = (start, end, timeline) => {
   return (eventDuration / timeline.totalDays) * 100;
 };
 
+const mouseMoved = (oldMousePosition, mouseEvent, movementThreshold) => {
+  const deltaX = Math.abs(oldMousePosition.x - mouseEvent.clientX);
+  const deltaY = Math.abs(oldMousePosition.y - mouseEvent.clientY);
+  return (deltaX <= movementThreshold && deltaY <= movementThreshold);
+};
+
 export default function Event ({event, updateEvent, timeline, theme}) {
-  const [mouseMoved, setMouseMoved] = useState(false)
+  const [mousePosition, setMouseMoved] = useState({x: 0, y: 0});
+  const movementThreshold = 4;  // not very accurate, varies by browser
 
-  const handleMouseDown = () => setMouseMoved(false);
-  const handleMouseMove = () => setMouseMoved(true);
-  const handleMouseUp = () => {
-    if(!mouseMoved) {
+  const handleMouseDown = mouseEvent => setMouseMoved({x: mouseEvent.clientX, y: mouseEvent.clientY});
+  const handleMouseUp = mouseEvent => {
+    if(mouseMoved(mousePosition, mouseEvent, movementThreshold)) {
       updateEvent({...event, ...{name: 'PARTAYYYYY'}});
-  }
+    }
+  };
 
-}
   return(
     <EventContainer
       width={calculateEventWidth(event.start, event.end, timeline)}
@@ -82,7 +88,6 @@ export default function Event ({event, updateEvent, timeline, theme}) {
       title={`${event.name}\n${event.start} - ${event.end}`}
       theme={theme}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
     >
       <EventTextContainer>

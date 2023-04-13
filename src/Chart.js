@@ -231,13 +231,8 @@ export default function Chart ({ events, setEvents, swimlanes, theme }) {
 
   useEffect(() => {
     window.addEventListener("resize", handleResize);
-    window.addEventListener('mouseenter', disableBrowserBackBehavior, {passive:false});
-    window.addEventListener('mouseleave', enableBrowserBackBehavior, {passive:false});
-
     return () => {
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener('mouseenter', disableBrowserBackBehavior);
-      window.removeEventListener('mouseleave', enableBrowserBackBehavior);
     }
   }, [])
   
