@@ -99,3 +99,4 @@ Technical
 * Support inclusive end dates as a configuration item.
 * Adding a border to the event skews the offset so events are off center vertically. Fix this offset so events are centered properly with that theme option set.
 * When zooming all the way in dates repeat. Maybe limit ticks to one per day or do sub day tick intervals.
+* Single day events either don't render or render as lines if a border is enabled. Figure out the ideal UX for this given the end day is currently non-inclusive.

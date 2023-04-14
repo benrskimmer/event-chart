@@ -139,7 +139,7 @@ const sampleEvents = {
     {
       id: 4,
       start: "2018-01-14",
-      end: "2018-01-14",
+      end: "2018-01-24",
       name: "Budget Approval"
     },
     {
@@ -181,7 +181,7 @@ const sampleEvents = {
     {
       id: 11,
       start: "2018-01-09",
-      end: "2018-01-09",
+      end: "2018-01-11",
       name: "QA Strategy Planning"
     },
     {
