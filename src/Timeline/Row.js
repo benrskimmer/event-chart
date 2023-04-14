@@ -6,13 +6,16 @@ const Timeline = styled.div`
   height: ${props => props.theme.showEventBorder ? '50px' : '48px'};
   padding-top: 6px;
   padding-bottom: 6px;
-  background-color: ${props => (props.swimlaneOn && props.theme.showSwimlanes ? props.theme.swimlaneColor : '')}
+  background-color: ${props => 
+    (props.swimlaneRow && (props.theme.showSwimlanes || props.theme.showSwimlanes === undefined) ? 
+    (props.theme.swimlaneColor || '#e2e8f0') : '')
+  };
 `
 
-export default function Row ({events, updateEvent, timeline, swimlaneOn, theme}) {
+export default function Row ({events, updateEvent, timeline, swimlaneRow, theme}) {
   return(
     <Timeline
-      swimlaneOn={swimlaneOn}
+      swimlaneRow={swimlaneRow}
       theme={theme}
     >
       {events.map((event) => (

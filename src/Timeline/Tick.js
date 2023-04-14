@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import TickLine from "./TickLine"
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { useLayoutEffect, useRef } from "react";
 
 const TickContainer = styled.div`
@@ -15,7 +15,10 @@ const TickDate = styled.p`
   padding-top: 25px;
   left: -50%;
   white-space: nowrap;
-  color: ${props => props.theme.tickTextColor}
+  color: ${props => props.theme.tickTextColor};
+  ${props => props.theme.fontFamily && css`
+    font-family:  ${props => props.theme.fontFamily}
+  `};
 `
 
 const getOffsetDate = (date, days) => {

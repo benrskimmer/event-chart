@@ -1,11 +1,8 @@
-# Getting Started with Create React App
+# Timeline Component
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## To Run
 
-## Available Scripts
-
-In the project directory, you can run:
-
+### `npm install`
 ### `npm start`
 
 Runs the app in the development mode.\
@@ -14,57 +11,91 @@ Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 The page will reload when you make changes.\
 You may also see any lint errors in the console.
 
-### `npm test`
+## Time Spent:
+~60hrs 🙃
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Aspects I appreciate about the design:
 
-### `npm run build`
+### Features
+Flexibility
+* Supports widely varying event durations.
+* Efficiently uses space on page by stacking events only when necessary.
+* Highly configurable themes.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Configurability
+* Tick configuration
+  * Configurable max tick count.
+  * Configurable Bars.
+  * Configurable padding (crowding).
+* Themes
+  * Background color.
+  * Event color.
+  * Border color.
+  * Event text color.
+  * Tick text color.
+  * Tick color.
+  * Swimlanes.
+  * Swimlane color.
+  * Box shadow.
+  * Timeline radius.
+  * Event Radius.
+  * Font.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Usability
+* Zoom and pan with smooth scrolling.
+* Cleanly truncates event text that is too large.
+* Tooltip for events.
+* Click + drag to pan.
+* Alt scroll pan.
+* Disables "back" gesture when cursor is over component.
+* Disables page scroll boundary animations when cursor is over component.
+* Disables page scrolling when cursor is over component.
+* Occupies the full space available for zooming.
+* Resizes to screen width.
+  * Supports narrow screen width (split screen / mobile).
+  * Maintains zoom level.
+    * Scales chart size to maintain the same zoom on resize.
+  * Maintains view of current events.
+    * Recalculates chart container offset on resize.
+  * Dynamically scales tick count to avoid crowding.
+    * Optimizes tick density within provided limits.
+* Reasonably performant
+  * Only renders tick marks that are viewable to reduce overhead.
+  * Manually inlines css rather than using styled components for frequently updating values.
+  * Only calculates stacking order when events update.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Basis for design decisions
+Appearance
+* chart.js
+  * Ticks and bars.
+  * Tick interval scaling and configuration.
+    * Max ticks.
+    * Tick padding.
+  * Zoom and pan.
+    * Disables browser page scrolling and default behavior in component.
+    * Disables back behavior for two finger scroll on trackpads.
+* Monday.com
+  * Bars and some of the themes.
 
-### `npm run eject`
+Technical
+* styled-components vs direct style updates due to performance reasons.
+* Decoupled events passed to the timeline from events on the chart by maintaining state internally which allows updating events.
+* Only rendering ticks that are on the screen for performance reasons.
+* `props` for themes instead of Context API.
+* Using `useLayoutEffect` to dynamically figure out tick scaling before rendering.
+  * This comes at a performance cost.0
+* One-click clear schedule easter egg 🥳
+  * On a more serious note, demonstrates event modification which I would've completed with event title changes based on UX.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Changes I would make if I did it again
+* Testing. I have very little experience with frontend testing frameworks and unit testing so would need to learn about this to implement frontend tests. I did break out functions so they'd be testable.
+* Context API for themes instead of prop drilling.
+* Be more careful about what functions are being run on render and what functions are being redefined.
+* Add memoization for callbacks using `useCallback`. Not sure how this works but potentially would give better performance.
+* Consider memoizing styled-components or figuring out how to get better performance out of it. A lot of this would depend on figuring out why performance is suffering. It's likely due to CSS class changes on the components or movement of the components.
+* Add event title renaming tooltip. Would need to figure out the best UX for this especially given that event names could be truncated inside the event. (eg. modal)
+* Would add draggable event handles to change event duration. Also, would add animations so that the user could see where the event ends up. Otherwise this could be a jarring UX for resizing events.
+* Support scaling font sizes and rotating tick date text to be vertical instead of horizontal for more dense packing.
+* Support inclusive end dates as a configuration item.
+* Adding a border to the event skews the offset so events are off center vertically. Fix this offset so events are centered properly with that theme option set.
+* When zooming all the way in dates repeat. Maybe limit ticks to one per day or do sub day tick intervals.

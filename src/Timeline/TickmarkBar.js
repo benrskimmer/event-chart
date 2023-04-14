@@ -45,12 +45,18 @@ const getBoundedTotalTickCount = (viewableTickCount, tickMaxWidth, tickPadding, 
 };
 
 const getTickDayOffsets = (timeline, chartInfo, tickCount, tickOverlapMargin) => {
+  const snapTickIntervalThreshold = 5;
   const timeBuckets = tickCount + 1;
   const intervalDays = (timeline.totalDays) / timeBuckets;
 
   const tickDayOffsets = [];
   for (let i = 0; Math.round(i) <= timeline.totalDays; i += intervalDays) {
-    tickDayOffsets.push(Math.round(i));
+    if (intervalDays > snapTickIntervalThreshold) {
+      tickDayOffsets.push(Math.round(i));  // precise tick placement, but causes overlap at high zoom
+    }
+    else {
+      tickDayOffsets.push(i);  // imprecise, but avoids overlap at high zoom
+    }
   }
   return getViewableTicks(tickDayOffsets, chartInfo, timeline, intervalDays);
 };

@@ -4,8 +4,8 @@ import { useState } from 'react';
 
 const EventContainer = styled.div`
   position: absolute;
-  background-color: ${props => props.theme.eventColor};
-  border-radius: ${props => props.theme.eventBorderRadius};
+  background-color: ${props => props.theme.eventColor || '#cbd5e1'};
+  border-radius: ${props => props.theme.eventBorderRadius || '2px'};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,6 +42,9 @@ const EventName = styled.h1`
   margin-bottom: 0.25rem;
   margin-top: 0;
   color: ${props => props.theme.eventTextColor};
+  ${props => props.theme.fontFamily && css`
+    font-family:  ${props => props.theme.fontFamily}
+  `};
 `
 
 const EventDates = styled.p`
@@ -52,6 +55,9 @@ const EventDates = styled.p`
   font-size: 0.8rem;
   margin: 0;
   color: ${props => props.theme.eventTextColor};
+  ${props => props.theme.fontFamily && css`
+    font-family:  ${props => props.theme.fontFamily}
+  `};
 `
 
 const calculateEventPosition = (start, timeline) => {
@@ -74,7 +80,12 @@ export default function Event ({event, updateEvent, timeline, theme}) {
   const [mousePosition, setMouseMoved] = useState({x: 0, y: 0});
   const movementThreshold = 4;  // not very accurate, varies by browser
 
-  const handleMouseDown = mouseEvent => setMouseMoved({x: mouseEvent.clientX, y: mouseEvent.clientY});
+  const handleMouseDown = mouseEvent => {
+    if(mouseEvent.buttons === 1) {
+      setMouseMoved({x: mouseEvent.clientX, y: mouseEvent.clientY})
+    }
+  };
+
   const handleMouseUp = mouseEvent => {
     if(mouseMoved(mousePosition, mouseEvent, movementThreshold)) {
       updateEvent({...event, ...{name: 'PARTAYYYYY'}});
@@ -93,7 +104,7 @@ export default function Event ({event, updateEvent, timeline, theme}) {
       <EventTextContainer>
         <EventName theme={theme}>{event.name}</EventName>
         <EventDates theme={theme}>
-          {`${format(parseISO(event.start), "MMM d, yyyy")} -  ${format(parseISO(event.end), "MMM d, yyyy")}`}
+          {`${format(parseISO(event.start), "MMM d, yyyy")} - ${format(parseISO(event.end), "MMM d, yyyy")}`}
         </EventDates>
       </EventTextContainer>
     </EventContainer>
