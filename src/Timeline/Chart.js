@@ -1,15 +1,17 @@
 import Row from "./Row";
 import TickmarksBar from "./TickmarkBar";
-import { useState, useRef, useEffect, useLayoutEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { parseISO, differenceInDays } from "date-fns";
 import styled from "styled-components";
 
 const scrollZoomSensitivity = 0.8;
 const scrollPanSensitivity = 0.5;  // pan scroll sensitivity if alt key is held
+const pinchZoomSensitivity = 2;
 
 const Container = styled.div`
   position: relative;
   user-select: none;
+  touch-action: pan-y;
 `
 
 const addEventToRows = (rows, event) => {
@@ -59,7 +61,7 @@ const getTimelineRows = (events) => {
 const boundedZoom = (chartInfo) => {
   const minimumWidth = chartInfo.chartWidth;
   const maximumWidth = chartInfo.zoomRatioLimit * chartInfo.chartWidth;
-  return Math.round(Math.min(Math.max(chartInfo.containerWidth, minimumWidth), maximumWidth));
+  return Math.min(Math.max(chartInfo.containerWidth, minimumWidth), maximumWidth);
 };
 
 const unviewableWidth = (chartInfo) => (chartInfo.containerWidth - chartInfo.chartWidth);
@@ -100,7 +102,7 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
     shortestEventDays: 1,
   };
 
-  const [chartEvents, setChartEvents] = useState([...events]);
+  const [chartEvents, setChartEvents] = useState(events);
 
   const [chartInfo, setChartInfo] = useState({
     chartHeight: 0,
@@ -113,6 +115,11 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
 
   const [panStart, setPanStart] = useState(0);
 
+  const [dragging, setDragging] = useState(false);
+
+  const [pinching, setPinching] = useState(false);
+  const [initialPinchInfo, setInitialPinchInfo] = useState({distance: 0, centerX: 0});
+
   const handleResize = () => {
     setChartInfo(oldChartInfo => {
       const newChartInfo = {...oldChartInfo};
@@ -123,36 +130,91 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
     });
   };
 
-  const handleMouseDown = event => setPanStart(event.clientX);
+  const cursorViewableOffset = useCallback(cursorOffset => (cursorOffset - chartRef.current.offsetLeft), []);
   
-  const handleMouseMove = event => {
-    if(event.buttons !== 1) {
-      return;
-    }
-    const panDistance = event.clientX - panStart;
+  const eventContainerPivotRatio = useCallback((cursorOffset, currentOffsetLeft) => {
+    const containerPivotOffset = cursorViewableOffset(cursorOffset) + Math.abs(currentOffsetLeft);
+    return containerPivotOffset / (containerRef.current.clientWidth - 1);
+  }, [cursorViewableOffset]);
+
+  const zoom = useCallback((pivotX, amount) => {
+    setChartInfo( oldChartInfo => {
+      const newChartInfo = {...oldChartInfo};
+      const previousWidth = oldChartInfo.containerWidth ? oldChartInfo.containerWidth : containerRef.current.clientWidth;
+      const zoomIncrement = 0.001 * previousWidth;
+
+      newChartInfo.containerWidth = previousWidth - (amount * zoomIncrement);
+      newChartInfo.containerWidth = boundedZoom(newChartInfo);
+      
+      newChartInfo.zoomRatio = newChartInfo.containerWidth / chartRef.current.clientWidth;
+      const widthIncrease = newChartInfo.containerWidth - previousWidth;
+      const additionalLeftShiftAmount = 0 - eventContainerPivotRatio(pivotX, oldChartInfo.containerLeftOffset) * widthIncrease;
+      newChartInfo.containerLeftOffset += additionalLeftShiftAmount;
+      newChartInfo.containerLeftOffset = boundedLeftOffset(newChartInfo);
+      return newChartInfo;
+    });
+  }, [eventContainerPivotRatio]);
+
+  const pan = useCallback(clientX => {
+    const panDistance = clientX - panStart;
     setChartInfo( oldPosition => {
       const newPosition = {...oldPosition};
       newPosition.containerLeftOffset += panDistance;
       newPosition.containerLeftOffset = boundedLeftOffset(newPosition);
       return newPosition;
     });
-    setPanStart(event.clientX);
+    setPanStart(clientX);
+  }, [panStart]);
+
+  const handleMouseDown = e => setPanStart(e.clientX);
+  
+  const handleMouseMove = e => {
+    if(e.buttons !== 1) {
+      return;
+    }
+    pan(e.clientX);
   };
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 1) {
+      setDragging(true);
+      setPanStart(e.touches[0].clientX);
+    }
+    else if (e.touches.length === 2) {
+      setPinching(true);
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      setInitialPinchInfo({distance, centerX});
+    }
+  };
+
+  const handleTouchMove = useCallback((e) => {
+    console.log(e.touches[0])
+    if (dragging && e.touches.length === 1) {
+      pan(e.touches[0].clientX);
+    }
+    else if (pinching && e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const currentPinchDistance = Math.sqrt(dx * dx + dy * dy);
+      const zoomAmount = (initialPinchInfo.distance - currentPinchDistance) * pinchZoomSensitivity;
+      zoom(initialPinchInfo.centerX, zoomAmount)
+      setInitialPinchInfo(oldPinchInfo => ({...oldPinchInfo, distance: currentPinchDistance}));
+    }
+  }, [dragging, pinching, initialPinchInfo, pan, zoom]);
+
+  const handleTouchEnd = useCallback(() => {
+    setDragging(false);
+    setPinching(false);
+  }, []);
 
   const updateEvent = (event) => {  // TODO: future event modification support
     setChartEvents(chartEvents.map(oldEvent => oldEvent.id === event.id ? event : oldEvent));
   };
 
   useEffect(() => {
-    const containerLeftOffset = () => (chartRef.current.offsetLeft - containerRef.current.offsetLeft);
-
-    const cursorViewableOffset = cursorOffset => (cursorOffset - chartRef.current.offsetLeft);
-  
-    const eventContainerPivotRatio = cursorOffset => {
-      const containerPivotOffset = cursorViewableOffset(cursorOffset) + containerLeftOffset();
-      return containerPivotOffset / (containerRef.current.clientWidth - 1);
-    };
-
     const scrollPan = scrollAmount => {
       setChartInfo( oldChartInfo => {
         const newChartInfo = {...oldChartInfo};
@@ -164,23 +226,9 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
       });
     };
   
-    const scrollZoom = (cursorOffsetX, deltaY) => {
-      setChartInfo( oldChartInfo => {
-        const newChartInfo = {...oldChartInfo};
-        const previousWidth = oldChartInfo.containerWidth ? oldChartInfo.containerWidth : containerRef.current.clientWidth;
-        const zoomIncrement = 0.001 * previousWidth;
-
-        newChartInfo.containerWidth = previousWidth - (deltaY * scrollZoomSensitivity * zoomIncrement);
-        newChartInfo.containerWidth = boundedZoom(newChartInfo);
-        
-        newChartInfo.zoomRatio = newChartInfo.containerWidth / chartRef.current.clientWidth;
-        const widthIncrease = newChartInfo.containerWidth - previousWidth;
-        const additionalLeftShiftAmount = 0 - eventContainerPivotRatio(cursorOffsetX) * widthIncrease;
-        newChartInfo.containerLeftOffset += additionalLeftShiftAmount;
-        newChartInfo.containerLeftOffset = boundedLeftOffset(newChartInfo);
-        return newChartInfo;
-      });
-    };
+    // const scrollZoom = (cursorOffsetX, deltaY) => {
+    //   zoom(cursorOffsetX, deltaY)
+    // };
 
     const handleScroll = event => {
       event.stopPropagation();
@@ -193,7 +241,8 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
         scrollPan(-event.deltaY);
         
       } else {
-        scrollZoom(event.clientX, event.deltaY);
+        const zoomAmount = event.deltaY * scrollZoomSensitivity;
+        zoom(event.clientX, zoomAmount);
       }
     }
     
@@ -206,7 +255,7 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
       container.removeEventListener('mouseenter', disableBrowserBackBehavior);
       container.removeEventListener('mouseleave', enableBrowserBackBehavior);
     }
-  }, [containerRef, theme.altScrollPan]);  // not sure why the dependency warnings
+  }, [containerRef, theme.altScrollPan, zoom]);
 
   const boundZoomIfUpdated = () => {
     chartInfo.zoomRatioLimit = timeline.totalDays / (theme.zoomLimitDays ||timeline.shortestEventDays);
@@ -251,6 +300,7 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
 
   useEffect(() => {
     window.addEventListener("resize", handleResize);
+    window.addEventListener('scroll', () => setDragging(false));
     return () => {
       window.removeEventListener("resize", handleResize);
     }
@@ -264,10 +314,13 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
           ref={containerRef}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           theme={theme}
           style={{
             width: `${chartInfo.containerWidth}px`,
-            left: `${chartInfo.containerLeftOffset}px`
+            transform: `translateX(${chartInfo.containerLeftOffset}px)`
           }}
         >
           <div ref={rowRef}>
