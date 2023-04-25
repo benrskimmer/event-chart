@@ -2,7 +2,7 @@ import Row from "./Row";
 import TickmarksBar from "./TickmarkBar";
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 import { parseISO, differenceInDays } from "date-fns";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 const scrollZoomSensitivity = 0.8;
 const scrollPanSensitivity = 0.5;  // pan scroll sensitivity if alt key is held
@@ -12,6 +12,13 @@ const Container = styled.div`
   position: relative;
   user-select: none;
   touch-action: pan-y;
+`
+const NoEvents = styled.h3`
+  text-align: center;
+  color: ${props => props.theme.tickTextColor};
+  ${props => props.theme.fontFamily && css`
+    font-family:  ${props => props.theme.fontFamily}
+  `};
 `
 
 const addEventToRows = (rows, event) => {
@@ -38,6 +45,9 @@ const calculateEventDays = event => {
 };
 
 const getTimelineRows = (events) => {
+  if (events.length === 0) {
+    return [[], {}];
+  }
   let sortedEvents = events.map(a => ({...a}))  // deep copy to ensure component is pure
   sortedEvents.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
   let shortestEventDays = calculateEventDays(events[0]);
@@ -102,8 +112,6 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
     shortestEventDays: 1,
   };
 
-  const [chartEvents, setChartEvents] = useState(events);
-
   const [chartInfo, setChartInfo] = useState({
     chartHeight: 0,
     chartWidth: 0,
@@ -130,7 +138,9 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
     });
   };
 
-  const cursorViewableOffset = useCallback(cursorOffset => (cursorOffset - chartRef.current.offsetLeft), []);
+  const cursorViewableOffset = useCallback(cursorOffset => (
+    cursorOffset - chartRef.current.getBoundingClientRect().left
+  ), [chartRef]);
   
   const eventContainerPivotRatio = useCallback((cursorOffset, currentOffsetLeft) => {
     const containerPivotOffset = cursorViewableOffset(cursorOffset) + Math.abs(currentOffsetLeft);
@@ -211,7 +221,9 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
   }, []);
 
   const updateEvent = (event) => {  // TODO: future event modification support
-    setChartEvents(chartEvents.map(oldEvent => oldEvent.id === event.id ? event : oldEvent));
+    saveChartEventsHook(events => {
+      return events.map(oldEvent => oldEvent.id === event.id ? event : oldEvent)
+    });
   };
 
   useEffect(() => {
@@ -257,17 +269,13 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
     }
   }, [containerRef, theme.altScrollPan, zoom]);
 
-  const boundZoomIfUpdated = () => {
+  const boundZoomIfUpdated = timeline => {
     chartInfo.zoomRatioLimit = timeline.totalDays / (theme.zoomLimitDays ||timeline.shortestEventDays);
     if(chartInfo.zoomRatio > chartInfo.zoomRatioLimit){
       chartInfo.zoomRatio = chartInfo.zoomRatioLimit;
       handleResize();
     }
   };
-
-  let timelineRows = [];
-  [timelineRows, timeline] = getTimelineRows(chartEvents);  // updating both variables in one pass through events
-  boundZoomIfUpdated();  // update the zoom after we have the updated timeline
   
   const setRowsHeight = () => {
     setChartInfo( oldPosition => {
@@ -291,12 +299,11 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
 
   useEffect(() => {
     setInitialChartInfo();
-    setChartEvents([...events]);
   }, [rowRef, containerRef, events]);  // if we update the dataset, reset the chart
 
   useLayoutEffect(() => {
     setRowsHeight();
-  }, [theme, chartEvents]);
+  }, [theme, events]);
 
   useEffect(() => {
     window.addEventListener("resize", handleResize);
@@ -305,6 +312,12 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
       window.removeEventListener("resize", handleResize);
     }
   }, []);
+
+  let timelineRows = [];
+  [timelineRows, timeline] = getTimelineRows(events);  // updating both variables in one pass through events
+  if(timelineRows.length !== 0) {
+    boundZoomIfUpdated(timeline);  // update the zoom after we have the updated timeline
+  }
   
   return (
       <div
@@ -324,22 +337,22 @@ export default function Chart ({ events, saveChartEventsHook, swimlanes, theme }
           }}
         >
           <div ref={rowRef}>
-            {timelineRows.map((events, index) => (
+            {timelineRows.length ? timelineRows.map((rowEvents, index) => (
               <Row
                 key={index}
-                events={events}
+                events={rowEvents}
                 updateEvent={updateEvent}
                 timeline={timeline}
                 swimlaneRow={(index % 2 && swimlanes)}
                 theme={theme}
               />
-            ))}
+            )) : <NoEvents theme={theme}>No Events to Display</NoEvents>}
           </div>
-            <TickmarksBar
-              chartInfo={chartInfo}
-              timeline={timeline}
-              theme={theme}
-            />
+          {/* <TickmarksBar
+            chartInfo={chartInfo}
+            timeline={timeline}
+            theme={theme}
+          /> */}
         </Container>
       </div>
   );

@@ -42,7 +42,7 @@ function App() {
   const updateDataset = onChangeEvent => {
     setEvents(sampleEvents[onChangeEvent.target.value]);
   };
-
+  
   return (
     <Page>
       <ContentSelectors>
